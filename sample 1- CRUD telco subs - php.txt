@@ -1,0 +1,119 @@
+<?php
+class Database {
+    protected $conn;
+
+    public function __construct() {
+        $this->conn = oci_connect('username', 'password', 'localhost/XE');
+        if (!$this->conn) {
+            $e = oci_error();
+            throw new Exception($e['message']);
+        }
+    }
+
+    public function __destruct() {
+        oci_close($this->conn);
+    }
+}
+?>
+
+
+<?php
+class Subscriber extends Database {
+    protected $id;
+    protected $name;
+    protected $phone;
+
+    public function __construct($id = null, $name = null, $phone = null) {
+        parent::__construct();
+        $this->id = $id;
+        $this->name = $name;
+        $this->phone = $phone;
+    }
+
+    public function create() {
+        $sql = "INSERT INTO subscribers (id, name, phone) VALUES (:id, :name, :phone)";
+        $stmt = oci_parse($this->conn, $sql);
+        oci_bind_by_name($stmt, ':id', $this->id);
+        oci_bind_by_name($stmt, ':name', $this->name);
+        oci_bind_by_name($stmt, ':phone', $this->phone);
+        oci_execute($stmt);
+        oci_free_statement($stmt);
+    }
+
+    public function read($id) {
+        $sql = "SELECT * FROM subscribers WHERE id = :id";
+        $stmt = oci_parse($this->conn, $sql);
+        oci_bind_by_name($stmt, ':id', $id);
+        oci_execute($stmt);
+        $result = oci_fetch_assoc($stmt);
+        oci_free_statement($stmt);
+        return $result;
+    }
+
+    public function update() {
+        $sql = "UPDATE subscribers SET name = :name, phone = :phone WHERE id = :id";
+        $stmt = oci_parse($this->conn, $sql);
+        oci_bind_by_name($stmt, ':id', $this->id);
+        oci_bind_by_name($stmt, ':name', $this->name);
+        oci_bind_by_name($stmt, ':phone', $this->phone);
+        oci_execute($stmt);
+        oci_free_statement($stmt);
+    }
+
+    public function delete($id) {
+        $sql = "DELETE FROM subscribers WHERE id = :id";
+        $stmt = oci_parse($this->conn, $sql);
+        oci_bind_by_name($stmt, ':id', $id);
+        oci_execute($stmt);
+        oci_free_statement($stmt);
+    }
+}
+?>
+
+
+<?php
+class SpecialSubscriber extends Subscriber {
+    private $specialFeature;
+
+    public function __construct($id = null, $name = null, $phone = null, $specialFeature = null) {
+        parent::__construct($id, $name, $phone);
+        $this->specialFeature = $specialFeature;
+    }
+
+    public function create() {
+        $sql = "INSERT INTO special_subscribers (id, name, phone, special_feature) VALUES (:id, :name, :phone, :special_feature)";
+        $stmt = oci_parse($this->conn, $sql);
+        oci_bind_by_name($stmt, ':id', $this->id);
+        oci_bind_by_name($stmt, ':name', $this->name);
+        oci_bind_by_name($stmt, ':phone', $this->phone);
+        oci_bind_by_name($stmt, ':special_feature', $this->specialFeature);
+        oci_execute($stmt);
+        oci_free_statement($stmt);
+    }
+}
+?>
+
+
+<?php
+try {
+    // Creating a regular subscriber
+    $subscriber = new Subscriber(1, 'John Doe', '1234567890');
+    $subscriber->create();
+    $subData = $subscriber->read(1);
+    print_r($subData);
+    $subscriber->name = 'John Smith';
+    $subscriber->update();
+    $subscriber->delete(1);
+
+    // Creating a special subscriber
+    $specialSubscriber = new SpecialSubscriber(2, 'Jane Doe', '0987654321', 'VIP');
+    $specialSubscriber->create();
+    $specialSubData = $specialSubscriber->read(2);
+    print_r($specialSubData);
+    $specialSubscriber->name = 'Jane Smith';
+    $specialSubscriber->update();
+    $specialSubscriber->delete(2);
+} catch (Exception $e) {
+    echo "Error: " . $e->getMessage();
+}
+?>

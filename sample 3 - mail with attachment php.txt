@@ -1,0 +1,109 @@
+composer require mongodb/mongodb phpmailer/phpmailer tecnickcom/tcpdf
+
+<?php
+require 'vendor/autoload.php';
+
+use MongoDB\Client as MongoClient;
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+use TCPDF;
+
+class AdvertisementMailer {
+    private $mongoClient;
+    private $db;
+    private $collection;
+
+    public function __construct($mongoUri, $dbName, $collectionName) {
+        // Connect to MongoDB
+        $this->mongoClient = new MongoClient($mongoUri);
+        $this->db = $this->mongoClient->$dbName;
+        $this->collection = $this->db->$collectionName;
+    }
+
+    public function fetchAdvertisement($productId) {
+        return $this->collection->findOne(['_id' => new MongoDB\BSON\ObjectId($productId)]);
+    }
+
+    public function createPDF($data, $filePath) {
+        $pdf = new TCPDF();
+        $pdf->AddPage();
+        $pdf->SetFont('helvetica', '', 12);
+
+        // Add product details
+        $html = "<h1>{$data['title']}</h1>";
+        $html .= "<p><strong>Price:</strong> {$data['price']}</p>";
+        $html .= "<p><strong>Description:</strong> {$data['description']}</p>";
+
+        // Add images if available
+        if (isset($data['images']) && is_array($data['images'])) {
+            foreach ($data['images'] as $image) {
+                $html .= '<img src="' . $image . '" alt="Product Image" width="150">';
+            }
+        }
+
+        $pdf->writeHTML($html, true, false, true, false, '');
+
+        $pdf->Output($filePath, 'F');
+    }
+
+    public function sendEmail($to, $subject, $body, $attachmentPath) {
+        $mail = new PHPMailer(true);
+
+        try {
+            // Server settings
+            $mail->isSMTP();
+            $mail->Host = 'smtp.example.com'; // Set the SMTP server to send through
+            $mail->SMTPAuth = true;
+            $mail->Username = 'your_email@example.com'; // SMTP username
+            $mail->Password = 'your_password'; // SMTP password
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port = 587;
+
+            // Recipients
+            $mail->setFrom('your_email@example.com', 'Mailer');
+            $mail->addAddress($to);
+
+            // Attachments
+            $mail->addAttachment($attachmentPath);
+
+            // Content
+            $mail->isHTML(true);
+            $mail->Subject = $subject;
+            $mail->Body = $body;
+
+            $mail->send();
+            echo 'Message has been sent';
+        } catch (Exception $e) {
+            echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
+        }
+    }
+}
+
+// Usage example
+$mongoUri = 'mongodb://localhost:27017';
+$dbName = 'advertisementDB';
+$collectionName = 'products';
+$productId = 'your_product_id'; // Replace with the actual product ID from MongoDB
+
+$mailer = new AdvertisementMailer($mongoUri, $dbName, $collectionName);
+$product = $mailer->fetchAdvertisement($productId);
+
+if ($product) {
+    $pdfFilePath = 'path/to/save/ProductDetails.pdf'; // Specify the path to save the PDF
+    $mailer->createPDF($product, $pdfFilePath);
+
+    $emailBody = "<h1>{$product['title']}</h1>
+                  <p><strong>Price:</strong> {$product['price']}</p>
+                  <p><strong>Description:</strong> {$product['description']}</p>";
+
+    if (isset($product['images']) && is_array($product['images'])) {
+        foreach ($product['images'] as $image) {
+            $emailBody .= '<img src="' . $image . '" alt="Product Image" width="150">';
+        }
+    }
+
+    $mailer->sendEmail('recipient@example.com', 'Product Advertisement Details', $emailBody, $pdfFilePath);
+} else {
+    echo 'Product not found';
+}
+?>

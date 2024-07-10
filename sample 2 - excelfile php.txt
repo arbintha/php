@@ -1,0 +1,58 @@
+composer require phpoffice/phpspreadsheet
+ 
+
+<?php
+require 'vendor/autoload.php';
+
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+
+// Load content from the link
+$url = 'https://www.linkedin.com/in/arbin-thakur-0b586776/';
+$content = file_get_contents($url);
+
+// Create a new Spreadsheet object
+$spreadsheet = new Spreadsheet();
+
+// Function to create and populate sheets
+function createSheet($spreadsheet, $sheetIndex, $title, $content) {
+    $spreadsheet->createSheet($sheetIndex);
+    $sheet = $spreadsheet->setActiveSheetIndex($sheetIndex);
+    $sheet->setTitle($title);
+
+    // Adding text
+    $sheet->setCellValue('A1', 'Text from the Link:');
+    $sheet->setCellValue('A2', strip_tags($content)); // 
+
+    // Adding a table
+    $sheet->setCellValue('A4', 'ID');
+    $sheet->setCellValue('B4', 'Name');
+    $sheet->setCellValue('A5', '1');
+    $sheet->setCellValue('B5', 'Example');
+
+    // Adding a graphic
+    $drawing = new Drawing();
+    $drawing->setName('Logo');
+    $drawing->setDescription('Logo');
+    $drawing->setPath('logo.png'); // 
+    $drawing->setHeight(36);
+    $drawing->setCoordinates('A7');
+    $drawing->setWorksheet($sheet);
+}
+
+// Create five sheets
+createSheet($spreadsheet, 0, 'Sheet1', $content);
+createSheet($spreadsheet, 1, 'Sheet2', $content);
+createSheet($spreadsheet, 2, 'Sheet3', $content);
+createSheet($spreadsheet, 3, 'Sheet4', $content);
+createSheet($spreadsheet, 4, 'Sheet5', $content);
+
+// Set the first sheet as the active sheet
+$spreadsheet->setActiveSheetIndex(0);
+
+// Save the spreadsheet to a file
+$writer = new Xlsx($spreadsheet);
+$writer->save('path_to_save/SubscriberInfo.xlsx');
+?>

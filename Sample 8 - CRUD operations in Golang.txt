@@ -1,0 +1,146 @@
+package main
+
+import (
+    "database/sql"
+    "fmt"
+    "log"
+
+    _ "github.com/godror/godror"
+)
+
+func connectDB() (*sql.DB, error) {
+    dsn := "user/password@hostname:port/service_name"
+    db, err := sql.Open("godror", dsn)
+    if err != nil {
+        return nil, err
+    }
+    err = db.Ping()
+    if err != nil {
+        return nil, err
+    }
+    return db, nil
+}
+
+func main() {
+    db, err := connectDB()
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer db.Close()
+
+    fmt.Println("Connected to Oracle Database!")
+}
+
+###################
+func createUser(db *sql.DB, name string, email string) error {
+    query := `INSERT INTO users (name, email) VALUES (:1, :2)`
+    _, err := db.Exec(query, name, email)
+    return err
+}
+########################
+func getUser(db *sql.DB, userID int) (string, string, error) {
+    var name, email string
+    query := `SELECT name, email FROM users WHERE id = :1`
+    err := db.QueryRow(query, userID).Scan(&name, &email)
+    return name, email, err
+}
+##########################
+func updateUser(db *sql.DB, userID int, name string, email string) error {
+    query := `UPDATE users SET name = :1, email = :2 WHERE id = :3`
+    _, err := db.Exec(query, name, email, userID)
+    return err
+}
+#########################
+func deleteUser(db *sql.DB, userID int) error {
+    query := `DELETE FROM users WHERE id = :1`
+    _, err := db.Exec(query, userID)
+    return err
+}
+############################
+package main
+
+import (
+    "database/sql"
+    "fmt"
+    "log"
+
+    _ "github.com/godror/godror"
+)
+
+func connectDB() (*sql.DB, error) {
+    dsn := "user/password@hostname:port/service_name"
+    db, err := sql.Open("godror", dsn)
+    if err != nil {
+        return nil, err
+    }
+    err = db.Ping()
+    if err != nil {
+        return nil, err
+    }
+    return db, nil
+}
+
+func createUser(db *sql.DB, name string, email string) error {
+    query := `INSERT INTO users (name, email) VALUES (:1, :2)`
+    _, err := db.Exec(query, name, email)
+    return err
+}
+
+func getUser(db *sql.DB, userID int) (string, string, error) {
+    var name, email string
+    query := `SELECT name, email FROM users WHERE id = :1`
+    err := db.QueryRow(query, userID).Scan(&name, &email)
+    return name, email, err
+}
+
+func updateUser(db *sql.DB, userID int, name string, email string) error {
+    query := `UPDATE users SET name = :1, email = :2 WHERE id = :3`
+    _, err := db.Exec(query, name, email, userID)
+    return err
+}
+
+func deleteUser(db *sql.DB, userID int) error {
+    query := `DELETE FROM users WHERE id = :1`
+    _, err := db.Exec(query, userID)
+    return err
+}
+
+func main() {
+    db, err := connectDB()
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer db.Close()
+
+    fmt.Println("Connected to Oracle Database!")
+
+    // Create a new user
+    err = createUser(db, "John Doe", "john.doe@example.com")
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println("User created")
+
+    // Read user information
+    name, email, err := getUser(db, 1)
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Printf("User: %s, Email: %s\n", name, email)
+
+    // Update user information
+    err = updateUser(db, 1, "Jane Doe", "jane.doe@example.com")
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println("User updated")
+
+    // Delete the user
+    err = deleteUser(db, 1)
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println("User deleted")
+}
+
+###########################
